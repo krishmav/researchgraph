@@ -107,7 +107,8 @@ export default function ForceGraph({ nodes, edges, height = 500 }: Props) {
         setTooltip(null);
       })
       .call(
-        d3.drag<SVGCircleElement, SimNode>()
+        // === FIX: Bypassing strict types for d3 drag behavior ===
+        d3.drag<any, any>()
           .on("start", (event, d) => {
             if (!event.active) sim.alphaTarget(0.3).restart();
             d.fx = d.x; d.fy = d.y;
@@ -118,7 +119,7 @@ export default function ForceGraph({ nodes, edges, height = 500 }: Props) {
           .on("end", (event, d) => {
             if (!event.active) sim.alphaTarget(0);
             d.fx = null; d.fy = null;
-          }) as d3.DragBehavior<SVGCircleElement, SimNode, SimNode | d3.SubjectPosition>
+          }) as any
       );
 
     // Labels for large nodes
@@ -144,7 +145,10 @@ export default function ForceGraph({ nodes, edges, height = 500 }: Props) {
       label.attr("x", (d) => d.x!).attr("y", (d) => (d.y ?? 0) - (d.size / 2) - 4);
     });
 
-    return () => sim.stop();
+    // === FIX: Wrapping stop in curly braces to return clean void ===
+    return () => {
+      sim.stop();
+    };
   }, [nodes, edges, height]);
 
   return (
