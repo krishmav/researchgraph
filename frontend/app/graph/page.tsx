@@ -23,7 +23,7 @@ export default function GraphPage() {
 
   useEffect(() => {
     getGraphStats().then(setStats).catch(() => {});
-    getTopPapersByPageRank(10).then(setTopPapers).catch(() => {});
+    getTopPapersByPageRank(10).then((data: any) => setTopPapers(data)).catch(() => {});
   }, []);
 
   useEffect(() => {
