@@ -19,3 +19,7 @@ data/
 .vscode/
 .idea/
 .DS_Store
+
+# Node & Frontend
+node_modules/
+.next/
