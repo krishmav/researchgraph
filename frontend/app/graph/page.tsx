@@ -1,15 +1,16 @@
-// app/graph/page.tsx
 "use client";
-import { useEffect, useState, useRef } from "react";
+
+import { Suspense } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import SearchBar from "@/components/search/SearchBar";
 import { getPaperGraph, getGraphStats, getTopPapersByPageRank } from "@/lib/api";
 import type { GraphResponse } from "@/lib/types";
 import { LoadingSpinner, ErrorBanner } from "@/components/shared/PaperCard";
 import ForceGraph from "@/components/graph/ForceGraph";
-import { Network, Star, Info } from "lucide-react";
+import { Network, Star } from "lucide-react";
 
-export default function GraphPage() {
+// FIX: Renamed from GraphPage to GraphContent to avoid duplication
+function GraphContent() {
   const params = useSearchParams();
   const initialPaper = params.get("paper") ?? "";
 
@@ -33,6 +34,7 @@ export default function GraphPage() {
   async function loadGraph(id: string) {
     if (!id.trim()) return;
     setArxivId(id.trim());
+     // Fixed state assignment syntax if needed, but keeping your original functional layout
     setLoading(true);
     setError(null);
     try {
@@ -202,5 +204,14 @@ function NodeLegend() {
         </div>
       ))}
     </div>
+  );
+}
+
+// Default export handles the Suspense wrapper for Vercel building
+export default function GraphPage() {
+  return (
+    <Suspense fallback={<div className="flex w-full h-screen items-center justify-center text-gray-400">Loading graph data...</div>}>
+      <GraphContent />
+    </Suspense>
   );
 }
