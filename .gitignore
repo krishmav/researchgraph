@@ -1,0 +1,21 @@
+# Security / Environment Variables
+.env
+.env.*
+
+# Python Environments
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Massive Data Folders
+data/
+*.parquet
+*.npy
+*.npz
+*.pkl
+
+# IDE / OS Files
+.vscode/
+.idea/
+.DS_Store
