@@ -11,6 +11,7 @@ Entry point. Configures:
 from __future__ import annotations
 
 import traceback
+import threading
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -30,35 +31,43 @@ from app.models.schemas import HealthResponse
 settings = get_settings()
 
 
+# ── Background Model Loader ───────────────────────────────────────────────────
+
+def load_heavy_models_in_background():
+    """Loads massive ML pipelines on a separate thread to prevent 502 timeouts."""
+    try:
+        logger.info("Background thread: Loading retrieval engines…")
+        RetrievalService.get_instance().load_all()
+
+        logger.info("Background thread: Loading TF-IDF baseline…")
+        BaselineService.get_instance().load_all()
+
+        logger.info("Background thread: Loading knowledge graph…")
+        KnowledgeGraphService.get_instance().load()
+
+        logger.info("Background thread: Loading topic model…")
+        TopicModelService.get_instance().load()
+
+        logger.info("Background thread: Loading research gaps…")
+        GapFinderService.get_instance().load()
+        
+        logger.info("All ML artifacts successfully loaded in background!")
+    except Exception as e:
+        logger.error(f"Background loading failed: {e}")
+
+
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Load all ML artifacts on startup; clean up on shutdown."""
+    """Start background loader on startup; clean up on shutdown."""
     setup_logging()
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
 
-    # Load retrieval models (FAISS indices)
-    logger.info("Loading retrieval engines…")
-    RetrievalService.get_instance().load_all()
+    # Offload the heavy lifting to a background thread so the port opens instantly
+    thread = threading.Thread(target=load_heavy_models_in_background)
+    thread.start()
 
-    # Load TF-IDF baseline
-    logger.info("Loading TF-IDF baseline…")
-    BaselineService.get_instance().load_all()
-
-    # Load knowledge graph
-    logger.info("Loading knowledge graph…")
-    KnowledgeGraphService.get_instance().load()
-
-    # Load topic model
-    logger.info("Loading topic model…")
-    TopicModelService.get_instance().load()
-
-    # Load research gaps
-    logger.info("Loading research gaps…")
-    GapFinderService.get_instance().load()
-
-    logger.info("All ML artifacts loaded. API ready.")
     yield
 
     # Shutdown
