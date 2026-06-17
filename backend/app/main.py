@@ -34,7 +34,8 @@ settings = get_settings()
 # ── Background Model Loader ───────────────────────────────────────────────────
 
 def load_heavy_models_in_background():
-    """Loads massive ML pipelines on a separate thread to prevent 502 timeouts."""
+    """Loads ML pipelines on a separate thread to prevent 502 timeouts.
+       Heavy auxiliary models are disabled to survive the 512MB RAM limit."""
     try:
         logger.info("Background thread: Loading retrieval engines…")
         RetrievalService.get_instance().load_all()
@@ -45,15 +46,16 @@ def load_heavy_models_in_background():
         logger.info("Background thread: Loading knowledge graph…")
         KnowledgeGraphService.get_instance().load()
 
-        logger.info("Background thread: Loading topic model…")
-        TopicModelService.get_instance().load()
+        # 🚨 TEMPORARILY DISABLED TO PREVENT RAM CRASHES ON FREE TIER 🚨
+        # logger.info("Background thread: Loading topic model…")
+        # TopicModelService.get_instance().load()
 
-        logger.info("Background thread: Loading research gaps…")
-        GapFinderService.get_instance().load()
+        # logger.info("Background thread: Loading research gaps…")
+        # GapFinderService.get_instance().load()
         
-        logger.info("All ML artifacts successfully loaded in background!")
+        logger.info("🎉 Core ML artifacts successfully loaded in background!")
     except Exception as e:
-        logger.error(f"Background loading failed: {e}")
+        logger.error(f"🚨 Background loading failed: {e}")
 
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
