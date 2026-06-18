@@ -4,7 +4,7 @@ scripts/collect_arxiv.py
 Collect papers from the arXiv API by category and date range.
 
 Usage:
-    python scripts/collect_arxiv.py --max-papers 25000 --output data/raw
+    python scripts/collect_arxiv.py --max-papers 250 --output data/raw
 
 Features:
   - Rate-limited (3 req/s per arXiv terms of use)
@@ -144,7 +144,8 @@ def collect_papers(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Collect arXiv papers")
-    parser.add_argument("--max-papers", type=int, default=25000)
+    # 🚨 CHANGED DEFAULT FROM 25000 TO 250 TO PREVENT RENDER TIMEOUTS 🚨
+    parser.add_argument("--max-papers", type=int, default=250)
     parser.add_argument("--output", type=str, default="data/raw")
     parser.add_argument("--rate-limit", type=float, default=RATE_LIMIT_SECONDS)
     args = parser.parse_args()
