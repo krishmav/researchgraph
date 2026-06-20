@@ -20,7 +20,7 @@ export default function HomePage() {
     setError(null);
     try {
       // Silently routing all searches to the optimal hybrid/dense pipeline
-      const res = await search(q, "minilm" as any, 10);
+      const res = await search(q, "miniml" as any, 10);
       setResult(res);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Search failed.");
