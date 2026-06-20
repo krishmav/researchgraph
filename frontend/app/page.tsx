@@ -1,25 +1,17 @@
 // app/page.tsx
 "use client";
 import { useState } from "react";
-import { Search, Zap, GitCompare } from "lucide-react";
 import SearchBar from "@/components/search/SearchBar";
 import ResultsList from "@/components/search/ResultsList";
-import MethodSelector from "@/components/search/MethodSelector";
-import SideBySideView from "@/components/search/SideBySideView";
-import type { SearchResponse, CompareSearchResponse, RetrievalMethod } from "@/lib/types";
-import { search, compareSearch } from "@/lib/api";
+import type { SearchResponse } from "@/lib/types";
+import { search } from "@/lib/api";
 import { LoadingSpinner, ErrorBanner } from "@/components/shared/PaperCard";
 
-type Mode = "single" | "compare";
-
 export default function HomePage() {
-  const [mode, setMode]       = useState<Mode>("single");
-  const [method, setMethod]   = useState<RetrievalMethod>("bge");
-  const [query, setQuery]     = useState("");
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState<string | null>(null);
-  const [result, setResult]   = useState<SearchResponse | null>(null);
-  const [compareResult, setCompareResult] = useState<CompareSearchResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<SearchResponse | null>(null);
 
   async function handleSearch(q: string) {
     if (!q.trim()) return;
@@ -27,15 +19,9 @@ export default function HomePage() {
     setLoading(true);
     setError(null);
     try {
-      if (mode === "compare") {
-        const res = await compareSearch(q, 10);
-        setCompareResult(res);
-        setResult(null);
-      } else {
-        const res = await search(q, method, 10);
-        setResult(res);
-        setCompareResult(null);
-      }
+      // Silently routing all searches to the optimal hybrid/dense pipeline
+      const res = await search(q, "minilm" as any, 10);
+      setResult(res);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Search failed.");
     } finally {
@@ -44,107 +30,95 @@ export default function HomePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white mb-1">
-          Semantic Research Search
-        </h1>
-        <p className="text-gray-400 text-sm">
-          Query 25k+ arXiv papers using transformer embeddings, TF-IDF, or keyword search.
-        </p>
-      </div>
-
-      {/* Mode toggle */}
-      <div className="flex items-center gap-2 mb-4">
-        <button
-          onClick={() => setMode("single")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                      transition-colors ${mode === "single"
-                        ? "bg-brand-500/20 text-brand-300 border border-brand-500/30"
-                        : "text-gray-500 hover:text-gray-300"}`}
-        >
-          <Zap className="w-3.5 h-3.5" /> Single method
-        </button>
-        <button
-          onClick={() => setMode("compare")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                      transition-colors ${mode === "compare"
-                        ? "bg-brand-500/20 text-brand-300 border border-brand-500/30"
-                        : "text-gray-500 hover:text-gray-300"}`}
-        >
-          <GitCompare className="w-3.5 h-3.5" /> Compare all methods
-        </button>
-      </div>
-
-      {/* Search bar */}
-      <SearchBar onSearch={handleSearch} loading={loading} />
-
-      {/* Method selector (single mode only) */}
-      {mode === "single" && (
-        <div className="mt-3">
-          <MethodSelector selected={method} onChange={setMethod} />
+    <div className="max-w-5xl mx-auto px-6 py-10">
+      
+      {/* SaaS Landing Hero (Only visible when no results and not loading) */}
+      {!result && !loading && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <h1 className="text-5xl font-extrabold text-white tracking-tight mb-4">
+            ResearchGraph
+          </h1>
+          <p className="text-xl text-gray-400 mb-10 max-w-2xl">
+            Search and explore 25,000+ research papers using semantic search.
+          </p>
         </div>
       )}
 
-      {/* Error */}
-      {error && <div className="mt-4"><ErrorBanner message={error} /></div>}
+      {/* Mini-Header for Results View */}
+      {result && !loading && (
+        <div className="mb-8">
+          <h1 
+            className="text-2xl font-bold text-white cursor-pointer inline-block"
+            onClick={() => {
+              setResult(null);
+              setQuery("");
+            }}
+          >
+            ResearchGraph
+          </h1>
+        </div>
+      )}
 
-      {/* Loading */}
+      {/* Main Search Bar */}
+      <div className={!result && !loading ? "max-w-3xl mx-auto w-full" : "w-full"}>
+        <SearchBar onSearch={handleSearch} loading={loading} />
+      </div>
+
+      {/* Suggested Topics (Only visible on the landing page) */}
+      {!loading && !result && !error && (
+        <div className="mt-12 text-center">
+          <div className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto">
+            {[
+              "Graph Neural Networks",
+              "Large Language Models",
+              "Reinforcement Learning",
+              "Computer Vision",
+              "Cybersecurity",
+              "Multi-Agent Systems"
+            ].map((topic) => (
+              <button
+                key={topic}
+                onClick={() => handleSearch(topic)}
+                className="px-4 py-2 bg-gray-800/40 text-gray-300 rounded-full text-sm font-medium hover:bg-gray-700/60 border border-gray-700/50 transition-all"
+              >
+                {topic}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {error && <div className="mt-8 max-w-3xl mx-auto"><ErrorBanner message={error} /></div>}
+
+      {/* Loading State */}
       {loading && (
-        <div className="flex items-center gap-3 mt-8 text-gray-400 text-sm">
-          <LoadingSpinner size="sm" />
-          <span>
-            {mode === "compare"
-              ? "Running all retrieval methods…"
-              : `Searching with ${method.toUpperCase()}…`}
+        <div className="flex flex-col items-center justify-center mt-24 text-gray-400">
+          <LoadingSpinner size="lg" />
+          <span className="mt-4 text-sm font-medium">
+            Searching 25,000+ indexed papers…
           </span>
         </div>
       )}
 
-      {/* Results */}
-      {!loading && result && mode === "single" && (
-        <div className="mt-6">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-gray-500">
-              {result.total_results} results · {result.latency_ms.toFixed(1)} ms ·{" "}
-              <span className="text-brand-400">{result.method.toUpperCase()}</span>
-            </p>
+      {/* Results View */}
+      {!loading && result && (
+        <div className="mt-10">
+          {/* Clean User-Focused Analytics */}
+          <div className="flex items-center justify-between pb-4 mb-6 border-b border-gray-800 text-sm text-gray-400">
+            <span className="font-semibold text-white">
+              {result.total_results} Results Found
+            </span>
+            <div className="flex gap-6">
+              <span>Search Time: {result.latency_ms.toFixed(1)}ms</span>
+              <span>Indexed Corpus: 25,000+ Papers</span>
+            </div>
           </div>
+          
           <ResultsList results={result.results} />
         </div>
       )}
 
-      {!loading && compareResult && mode === "compare" && (
-        <div className="mt-6">
-          <SideBySideView data={compareResult} />
-        </div>
-      )}
-
-      {/* Empty state hero */}
-      {!loading && !result && !compareResult && !error && (
-        <div className="mt-16 text-center">
-          <Search className="w-12 h-12 text-gray-700 mx-auto mb-4" />
-          <p className="text-gray-500 text-sm">
-            Try searching for{" "}
-            {[
-              '"graph neural networks"',
-              '"transformer attention"',
-              '"adversarial robustness"',
-              '"federated learning privacy"',
-            ].map((s, i) => (
-              <button
-                key={i}
-                onClick={() => handleSearch(s.replace(/"/g, ""))}
-                className="text-brand-400 hover:text-brand-300 mx-1 underline
-                           underline-offset-2 transition-colors"
-              >
-                {s}
-              </button>
-            ))}
-          </p>
-        </div>
-      )}
     </div>
   );
 }
